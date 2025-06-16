@@ -1,72 +1,60 @@
-# Prometheus全局配置
 global:
-  scrape_interval: 15s     # 默认抓取间隔，15秒从目标抓取一次数据
-  evaluation_interval: 15s # 规则评估间隔，15秒评估一次告警规则
-  scrape_timeout: 10s      # 抓取超时时间，如果目标在10秒内没有响应则放弃
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
 
-# Alertmanager配置 - 定义如何将告警发送到Alertmanager服务
 alerting:
   alertmanagers:
-    - static_configs:        # 静态配置Alertmanager目标
-        - targets: ['alertmanager:9093']  # Alertmanager服务地址和端口
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
-# 规则文件配置 - 定义告警规则和记录规则的文件路径
 rule_files:
-  - "rules/*.yml"           # 加载rules目录下所有.yml文件作为规则
+  - "rules/*.yml"
 
-# 抓取配置 - 定义Prometheus如何从各种目标收集指标
 scrape_configs:
-  # Prometheus自身监控 - 监控Prometheus自己的性能指标
-  - job_name: 'prometheus'   # 作业名称，用于标识这组目标
-    static_configs:          # 静态配置目标
-      - targets: ['localhost:9090']  # Prometheus自身地址和端口
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
 
-  # Consul服务发现 - 使用Consul自动发现和监控服务
-  - job_name: 'consul'       # 作业名称
-    consul_sd_configs:       # Consul服务发现配置
-      - server: 'consul-server1:8500'  # Consul服务器地址
-        services: []         # 空数组表示发现所有服务
-    relabel_configs:         # 标签重命名配置
-      - source_labels: [__meta_consul_service]  # 从Consul元数据提取服务名
-        target_label: service                   # 将其映射为service标签
-      - source_labels: [__meta_consul_node]     # 从Consul元数据提取节点名
-        target_label: node                      # 将其映射为node标签
-      - source_labels: [__meta_consul_dc]       # 从Consul元数据提取数据中心
-        target_label: dc                        # 将其映射为dc标签
+  - job_name: 'consul'
+    consul_sd_configs:
+      - server: 'consul-server1:8500'
+        services: []
+    relabel_configs:
+      - source_labels: [__meta_consul_service]
+        target_label: service
+      - source_labels: [__meta_consul_node]
+        target_label: node
+      - source_labels: [__meta_consul_dc]
+        target_label: dc
 
-  # Consul Exporter监控 - 收集Consul特定的指标
-  - job_name: 'consul-exporter'  # 作业名称
-    static_configs:              # 静态配置目标
-      - targets: ['consul-exporter:9107']  # Consul Exporter地址和端口
+  - job_name: 'consul-exporter'
+    static_configs:
+      - targets: ['consul-exporter:9107']
 
-  # Node Exporter监控 - 收集主机系统指标（CPU、内存、磁盘等）
-  - job_name: 'node-exporter'    # 作业名称
-    static_configs:              # 静态配置目标
-      - targets: ['node-exporter:9100']  # Node Exporter地址和端口
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
 
-  # Consul服务器监控 - 直接从Consul服务器收集指标
-  - job_name: 'consul-servers'   # 作业名称
-    static_configs:              # 静态配置目标
-      - targets:                 # 目标列表
-        - 'consul-server1:8500'  # Consul服务器1
-        - 'consul-server2:8500'  # Consul服务器2
-        - 'consul-server3:8500'  # Consul服务器3
-    metrics_path: /v1/agent/metrics  # Consul指标端点
-    params:                      # 请求参数
-      format: ['prometheus']     # 指定返回格式为Prometheus格式
+  - job_name: 'consul-servers'
+    static_configs:
+      - targets:
+          - 'consul-server1:8500'
+          - 'consul-server2:8500'
+          - 'consul-server3:8500'
+    metrics_path: /v1/agent/metrics
+    params:
+      format: ['prometheus']
 
-  # Grafana监控 - 收集Grafana服务的指标
-  - job_name: 'grafana'          # 作业名称
-    static_configs:              # 静态配置目标
-      - targets: ['grafana:3000']  # Grafana地址和端口
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
 
-  # Pyroscope监控 - 收集Pyroscope性能分析服务的指标
-  - job_name: 'pyroscope'        # 作业名称
-    static_configs:              # 静态配置目标
-      - targets: ['pyroscope:4040']  # Pyroscope地址和端口
-    metrics_path: /metrics       # 指标路径
+  - job_name: 'pyroscope'
+    static_configs:
+      - targets: ['pyroscope:4040']
+    metrics_path: /metrics
 
-  # Alertmanager监控 - 收集Alertmanager服务的指标
-  - job_name: 'alertmanager'     # 作业名称
-    static_configs:              # 静态配置目标
-      - targets: ['alertmanager:9093']  # Alertmanager地址和端口
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']

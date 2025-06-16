@@ -1,19 +1,13 @@
-# Grafana仪表板配置 - 定义如何自动加载仪表板
-apiVersion: 1                   # 配置文件API版本
+apiVersion: 1
 
-providers:                     # 仪表板提供者列表
-  - name: 'Consul监控仪表板'    # 提供者名称，用于标识此配置
-    orgId: 1                   # 组织ID，默认为1（主组织）
-    folder: 'Consul'           # 仪表板将被放置在Grafana UI的这个文件夹下
-    type: file                 # 提供者类型，file表示从文件系统加载仪表板
-    disableDeletion: false     # 是否禁止删除仪表板，false表示允许删除
-                               # 当仪表板文件被删除时，对应的Grafana仪表板也会被删除
-    updateIntervalSeconds: 10   # 检查仪表板文件更新的间隔时间（秒）
-                               # 每10秒检查一次文件变化并更新仪表板
-    allowUiUpdates: true       # 是否允许通过UI更新仪表板，true表示允许
-                               # 这允许用户在UI中修改仪表板并保存更改
-    options:                   # 提供者特定选项
-      path: /var/lib/grafana/dashboards  # 仪表板JSON文件的路径
-                               # 这是容器内的路径，通过Docker卷映射到主机
-      foldersFromFilesStructure: true    # 是否从文件结构创建文件夹
-                               # true表示根据子目录结构创建Grafana文件夹
+providers:
+  - name: 'Consul监控仪表板'
+    orgId: 1
+    folder: 'Consul'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

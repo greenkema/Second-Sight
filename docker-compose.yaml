@@ -1,298 +1,270 @@
-# Docker Compose配置文件 - 定义整个监控系统的容器化部署
-version: '3.8'                # Docker Compose文件格式版本
+version: '3.8'
 
-services:                    # 服务定义部分
-  # ===== Consul集群配置 =====  # Consul用于服务发现和配置管理
-  consul-server1:            # 第一个Consul服务器节点
-    image: consul:latest     # 使用最新的Consul官方镜像
-    container_name: consul-server1  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - consul-server1-data:/consul/data  # 持久化数据目录
-      - ./config/consul/server1:/consul/config  # 配置文件目录
-    environment:             # 环境变量
-      - CONSUL_BIND_INTERFACE=eth0  # 绑定到eth0网络接口
-      - CONSUL_CLIENT_INTERFACE=eth0  # 客户端接口也使用eth0
-    command: >               # 容器启动命令
-      agent -server -ui      # 以服务器模式运行，启用UI
-      -bootstrap-expect=3    # 预期的服务器节点数量为3
-      -node=consul-server1   # 节点名称
-      -client=0.0.0.0        # 客户端接口监听所有IP
-      -datacenter=dc1        # 数据中心名称
-      -encrypt=${CONSUL_ENCRYPT_KEY}  # 使用环境变量中的加密密钥
-      -retry-join=consul-server2  # 尝试加入server2节点
-      -retry-join=consul-server3  # 尝试加入server3节点
-      -config-dir=/consul/config  # 配置文件目录
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "8500:8500"          # HTTP API和Web UI端口
-      - "8600:8600/tcp"      # DNS接口(TCP)
-      - "8600:8600/udp"      # DNS接口(UDP)
-    healthcheck:             # 健康检查
-      test: ["CMD", "consul", "members"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+services:
+  consul-server1:
+    image: consul:latest
+    container_name: consul-server1
+    restart: always
+    volumes:
+      - consul-server1-data:/consul/data
+      - ./config/consul/server1:/consul/config
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - CONSUL_CLIENT_INTERFACE=eth0
+    command: >
+      agent -server -ui
+      -bootstrap-expect=3
+      -node=consul-server1
+      -client=0.0.0.0
+      -datacenter=dc1
+      -encrypt=${CONSUL_ENCRYPT_KEY}
+      -retry-join=consul-server2
+      -retry-join=consul-server3
+      -config-dir=/consul/config
+    networks:
+      - monitoring-net
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  consul-server2:            # 第二个Consul服务器节点
-    image: consul:latest     # 使用最新的Consul官方镜像
-    container_name: consul-server2  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - consul-server2-data:/consul/data  # 持久化数据目录
-      - ./config/consul/server2:/consul/config  # 配置文件目录
-    environment:             # 环境变量
-      - CONSUL_BIND_INTERFACE=eth0  # 绑定到eth0网络接口
-      - CONSUL_CLIENT_INTERFACE=eth0  # 客户端接口也使用eth0
-    command: >               # 容器启动命令
-      agent -server          # 以服务器模式运行
-      -node=consul-server2   # 节点名称
-      -client=0.0.0.0        # 客户端接口监听所有IP
-      -datacenter=dc1        # 数据中心名称
-      -encrypt=${CONSUL_ENCRYPT_KEY}  # 使用环境变量中的加密密钥
-      -retry-join=consul-server1  # 尝试加入server1节点
-      -retry-join=consul-server3  # 尝试加入server3节点
-      -config-dir=/consul/config  # 配置文件目录
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    healthcheck:             # 健康检查
-      test: ["CMD", "consul", "members"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  consul-server2:
+    image: consul:latest
+    container_name: consul-server2
+    restart: always
+    volumes:
+      - consul-server2-data:/consul/data
+      - ./config/consul/server2:/consul/config
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - CONSUL_CLIENT_INTERFACE=eth0
+    command: >
+      agent -server
+      -node=consul-server2
+      -client=0.0.0.0
+      -datacenter=dc1
+      -encrypt=${CONSUL_ENCRYPT_KEY}
+      -retry-join=consul-server1
+      -retry-join=consul-server3
+      -config-dir=/consul/config
+    networks:
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  consul-server3:            # 第三个Consul服务器节点
-    image: consul:latest     # 使用最新的Consul官方镜像
-    container_name: consul-server3  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - consul-server3-data:/consul/data  # 持久化数据目录
-      - ./config/consul/server3:/consul/config  # 配置文件目录
-    environment:             # 环境变量
-      - CONSUL_BIND_INTERFACE=eth0  # 绑定到eth0网络接口
-      - CONSUL_CLIENT_INTERFACE=eth0  # 客户端接口也使用eth0
-    command: >               # 容器启动命令
-      agent -server          # 以服务器模式运行
-      -node=consul-server3   # 节点名称
-      -client=0.0.0.0        # 客户端接口监听所有IP
-      -datacenter=dc1        # 数据中心名称
-      -encrypt=${CONSUL_ENCRYPT_KEY}  # 使用环境变量中的加密密钥
-      -retry-join=consul-server1  # 尝试加入server1节点
-      -retry-join=consul-server2  # 尝试加入server2节点
-      -config-dir=/consul/config  # 配置文件目录
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    healthcheck:             # 健康检查
-      test: ["CMD", "consul", "members"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  consul-server3:
+    image: consul:latest
+    container_name: consul-server3
+    restart: always
+    volumes:
+      - consul-server3-data:/consul/data
+      - ./config/consul/server3:/consul/config
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - CONSUL_CLIENT_INTERFACE=eth0
+    command: >
+      agent -server
+      -node=consul-server3
+      -client=0.0.0.0
+      -datacenter=dc1
+      -encrypt=${CONSUL_ENCRYPT_KEY}
+      -retry-join=consul-server1
+      -retry-join=consul-server2
+      -config-dir=/consul/config
+    networks:
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Prometheus配置 =====  # Prometheus用于指标收集和存储
-  prometheus:                # Prometheus服务
-    image: prom/prometheus:latest  # 使用最新的Prometheus官方镜像
-    container_name: prometheus  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml  # 主配置文件
-      - prometheus-data:/prometheus  # 持久化数据目录
-    command:                 # 容器启动命令
-      - '--config.file=/etc/prometheus/prometheus.yml'  # 配置文件路径
-      - '--storage.tsdb.path=/prometheus'  # 时间序列数据库路径
-      - '--web.console.libraries=/etc/prometheus/console_libraries'  # 控制台库路径
-      - '--web.console.templates=/etc/prometheus/consoles'  # 控制台模板路径
-      - '--web.enable-lifecycle'  # 启用HTTP API生命周期管理
-      - '--storage.tsdb.retention.time=15d'  # 数据保留时间为15天
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "9090:9090"          # Web UI和API端口
-    depends_on:              # 依赖关系
-      - consul-server1       # 依赖于Consul服务
-    healthcheck:             # 健康检查
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=15d'
+    networks:
+      - monitoring-net
+    ports:
+      - "9090:9090"
+    depends_on:
+      - consul-server1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Grafana配置 =====  # Grafana用于数据可视化和仪表板
-  grafana:                   # Grafana服务
-    image: grafana/grafana:latest  # 使用最新的Grafana官方镜像
-    container_name: grafana  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - grafana-data:/var/lib/grafana  # 持久化数据目录
-      - ./config/grafana/provisioning:/etc/grafana/provisioning  # 自动配置目录
-      - ./config/grafana/dashboards:/var/lib/grafana/dashboards  # 仪表板目录
-    environment:             # 环境变量
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}  # 管理员密码，默认为admin
-      - GF_USERS_ALLOW_SIGN_UP=false  # 禁止用户注册
-      - GF_SERVER_ROOT_URL=http://localhost:3000  # 根URL
-      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel,grafana-worldmap-panel  # 安装插件
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "3000:3000"          # Web UI端口
-    depends_on:              # 依赖关系
-      - prometheus           # 依赖于Prometheus服务
-    healthcheck:             # 健康检查
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel,grafana-worldmap-panel
+    networks:
+      - monitoring-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Alertmanager配置 =====  # Alertmanager用于告警处理和通知
-  alertmanager:              # Alertmanager服务
-    image: prom/alertmanager:latest  # 使用最新的Alertmanager官方镜像
-    container_name: alertmanager  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - ./config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml  # 配置文件
-      - alertmanager-data:/alertmanager  # 持久化数据目录
-    command:                 # 容器启动命令
-      - '--config.file=/etc/alertmanager/alertmanager.yml'  # 配置文件路径
-      - '--storage.path=/alertmanager'  # 数据存储路径
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "9093:9093"          # Web UI和API端口
-    depends_on:              # 依赖关系
-      - prometheus           # 依赖于Prometheus服务
-    healthcheck:             # 健康检查
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: always
+    volumes:
+      - ./config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring-net
+    ports:
+      - "9093:9093"
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Pyroscope配置 =====  # Pyroscope用于连续性能分析
-  pyroscope:                 # Pyroscope服务
-    image: pyroscope/pyroscope:latest  # 使用最新的Pyroscope官方镜像
-    container_name: pyroscope  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - pyroscope-data:/var/lib/pyroscope  # 持久化数据目录
-      - ./config/pyroscope/pyroscope.yml:/etc/pyroscope/pyroscope.yml  # 配置文件
-    command:                 # 容器启动命令
-      - 'server'             # 以服务器模式运行
-      - '-config=/etc/pyroscope/pyroscope.yml'  # 配置文件路径
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "4040:4040"          # Web UI和API端口
-    healthcheck:             # 健康检查
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/health"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  pyroscope:
+    image: pyroscope/pyroscope:latest
+    container_name: pyroscope
+    restart: always
+    volumes:
+      - pyroscope-data:/var/lib/pyroscope
+      - ./config/pyroscope/pyroscope.yml:/etc/pyroscope/pyroscope.yml
+    command:
+      - 'server'
+      - '-config=/etc/pyroscope/pyroscope.yml'
+    networks:
+      - monitoring-net
+    ports:
+      - "4040:4040"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4040/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Node Exporter配置 =====  # Node Exporter用于收集主机指标
-  node-exporter:             # Node Exporter服务
-    image: prom/node-exporter:latest  # 使用最新的Node Exporter官方镜像
-    container_name: node-exporter  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - /proc:/host/proc:ro  # 只读挂载主机的proc文件系统
-      - /sys:/host/sys:ro    # 只读挂载主机的sys文件系统
-      - /:/rootfs:ro         # 只读挂载主机的根文件系统
-    command:                 # 容器启动命令
-      - '--path.procfs=/host/proc'  # proc文件系统路径
-      - '--path.sysfs=/host/sys'    # sys文件系统路径
-      - '--path.rootfs=/rootfs'     # 根文件系统路径
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'  # 忽略的挂载点
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "9100:9100"          # 指标暴露端口
-    healthcheck:             # 健康检查
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9100/metrics"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - monitoring-net
+    ports:
+      - "9100:9100"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Consul Exporter配置 =====  # Consul Exporter用于收集Consul指标
-  consul-exporter:           # Consul Exporter服务
-    image: prom/consul-exporter:latest  # 使用最新的Consul Exporter官方镜像
-    container_name: consul-exporter  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    command:                 # 容器启动命令
-      - '--consul.server=consul-server1:8500'  # Consul服务器地址
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    depends_on:              # 依赖关系
-      - consul-server1       # 依赖于Consul服务
-    healthcheck:             # 健康检查
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9107/metrics"]  # 检查命令
-      interval: 30s          # 检查间隔
-      timeout: 10s           # 超时时间
-      retries: 3             # 重试次数
+  consul-exporter:
+    image: prom/consul-exporter:latest
+    container_name: consul-exporter
+    restart: always
+    command:
+      - '--consul.server=consul-server1:8500'
+    networks:
+      - monitoring-net
+    depends_on:
+      - consul-server1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9107/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # ===== Grafana Alloy配置 =====  # Grafana Alloy用于收集和处理遥测数据
-  alloy:                     # Grafana Alloy服务
-    image: grafana/alloy:latest  # 使用最新的Grafana Alloy官方镜像
-    container_name: grafana-alloy  # 容器名称
-    restart: always          # 容器退出时总是自动重启
-    volumes:                 # 数据卷挂载
-      - ./config/alloy/config.alloy:/etc/alloy/config.alloy  # 配置文件
-      - alloy-data:/var/lib/alloy/data  # 持久化数据目录
-    environment:             # 环境变量
-      - SLS_PROJECT=${SLS_PROJECT}  # 阿里云SLS项目名称
-      - SLS_ENDPOINT=${SLS_ENDPOINT}  # 阿里云SLS端点
-      - SLS_LOGSTORE=${SLS_LOGSTORE}  # 阿里云SLS日志库名称
-      - SLS_ACCESS_KEY_ID=${SLS_ACCESS_KEY_ID}  # 阿里云访问密钥ID
-      - SLS_ACCESS_KEY_SECRET=${SLS_ACCESS_KEY_SECRET}  # 阿里云访问密钥密码
-    command: >               # 容器启动命令
-      run --server.http.listen-addr=0.0.0.0:12345 \
-          --storage.path=/var/lib/alloy/data \
-          /etc/alloy/config.alloy
-    networks:                # 网络配置
-      - monitoring-net       # 连接到监控网络
-    ports:                   # 端口映射
-      - "12345:12345"        # Web UI和API端口
-      - "4317:4317"          # OTLP gRPC端口
-      - "4318:4318"          # OTLP HTTP端口
-    depends_on:              # 依赖关系
-      - prometheus           # 依赖于Prometheus服务
-    healthcheck:             # 健康检查
+  alloy:
+    image: grafana/alloy:latest
+    container_name: grafana-alloy
+    restart: always
+    volumes:
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy
+      - alloy-data:/var/lib/alloy/data
+    environment:
+      - SLS_PROJECT=${SLS_PROJECT}
+      - SLS_ENDPOINT=${SLS_ENDPOINT}
+      - SLS_LOGSTORE=${SLS_LOGSTORE}
+      - SLS_ACCESS_KEY_ID=${SLS_ACCESS_KEY_ID}
+      - SLS_ACCESS_KEY_SECRET=${SLS_ACCESS_KEY_SECRET}
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    networks:
+      - monitoring-net
+    ports:
+      - "12345:12345"
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - prometheus
+    healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:12345/"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-volumes:                     # 数据卷定义
-  # Consul数据卷 - 用于持久化Consul数据
-  consul-server1-data:       # server1的数据卷
-  consul-server2-data:       # server2的数据卷
-  consul-server3-data:       # server3的数据卷
-  # 监控系统数据卷 - 用于持久化监控系统数据
-  prometheus-data:           # Prometheus数据卷
-  grafana-data:              # Grafana数据卷
-  alertmanager-data:         # Alertmanager数据卷
-  pyroscope-data:            # Pyroscope数据卷
-  # Grafana Alloy数据卷
-  alloy-data:                # Alloy数据卷
+volumes:
+  consul-server1-data:
+  consul-server2-data:
+  consul-server3-data:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  pyroscope-data:
+  alloy-data:
 
-networks:                    # 网络定义
-  monitoring-net:            # 监控网络
-    driver: bridge           # 使用桥接模式
-    ipam:                    # IP地址管理
-      driver: default        # 使用默认驱动
-      config:                # 配置
-        - subnet: 172.28.0.0/16  # 子网配置
-
-# 注意事项：
-# 1. 使用前需要生成加密密钥，可以通过以下命令生成：
-#    docker run --rm consul consul keygen
-# 2. 将生成的密钥添加到.env文件中：
-#    CONSUL_ENCRYPT_KEY=生成的密钥
-#    GRAFANA_ADMIN_PASSWORD=自定义密码（默认为admin）
-#    SLS_PROJECT=阿里云SLS项目名称
-#    SLS_ENDPOINT=阿里云SLS端点（例如：cn-hangzhou.log.aliyuncs.com）
-#    SLS_LOGSTORE=阿里云SLS日志库名称
-#    SLS_ACCESS_KEY_ID=阿里云访问密钥ID
-#    SLS_ACCESS_KEY_SECRET=阿里云访问密钥密码
-# 3. 生产环境中应该配置TLS证书以确保通信安全
-# 4. 考虑添加访问控制列表(ACL)以限制访问
-# 5. 仅暴露必要的端口，其他端口仅在内部网络可访问
-# 6. 在启动前，需要创建配置文件目录结构：
-#    mkdir -p config/{consul/{server1,server2,server3},prometheus,grafana/{provisioning,dashboards},alertmanager,pyroscope,alloy}
+networks:
+  monitoring-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16

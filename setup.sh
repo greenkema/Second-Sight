@@ -1,48 +1,52 @@
 #!/bin/bash
 
-# 创建配置目录结构
-mkdir -p config/consul/server{1,2,3}
-mkdir -p config/prometheus/rules
-mkdir -p config/grafana/{provisioning/{datasources,dashboards,notifiers,plugins},dashboards}
-mkdir -p config/alertmanager/template
-mkdir -p config/pyroscope
+echo "Setting up Consul monitoring stack..."
 
-# 复制配置文件（如果不存在）
-if [ ! -f config/prometheus/prometheus.yml ]; then
-  cp -n config-templates/prometheus/prometheus.yml config/prometheus/
+if ! command -v docker &> /dev/null; then
+    echo "Docker is not installed. Please install Docker first."
+    exit 1
 fi
 
-if [ ! -f config/alertmanager/alertmanager.yml ]; then
-  cp -n config-templates/alertmanager/alertmanager.yml config/alertmanager/
+if ! command -v docker-compose &> /dev/null; then
+    echo "Docker Compose is not installed. Please install Docker Compose first."
+    exit 1
 fi
 
-if [ ! -f config/pyroscope/pyroscope.yml ]; then
-  cp -n config-templates/pyroscope/pyroscope.yml config/pyroscope/
+if [ ! -f ".env" ]; then
+    echo "Creating .env file from .env.sample..."
+    cp .env.sample .env
+    echo "Please edit .env file with your specific configuration."
 fi
 
-if [ ! -f config/consul/server1/config.json ]; then
-  cp -n config-templates/consul/server1/config.json config/consul/server1/
-fi
+echo "Creating necessary directories..."
+mkdir -p data/consul/server1
+mkdir -p data/consul/server2
+mkdir -p data/consul/server3
+mkdir -p data/prometheus
+mkdir -p data/grafana
+mkdir -p data/alertmanager
+mkdir -p data/pyroscope
+mkdir -p logs
 
-if [ ! -f config/grafana/provisioning/datasources/prometheus.yml ]; then
-  cp -n config-templates/grafana/provisioning/datasources/prometheus.yml config/grafana/provisioning/datasources/
-fi
+echo "Setting permissions..."
+chmod -R 755 data
+chmod -R 755 logs
 
-# 检查.env文件是否存在
-if [ ! -f .env ]; then
-  echo "错误: .env文件不存在，请从.env.example创建"
-  exit 1
-fi
+echo "Starting services..."
+docker-compose up -d
 
-# 生成Consul加密密钥（如果需要）
-if grep -q "your_generated_encryption_key_here" .env; then
-  echo "生成Consul加密密钥..."
-  CONSUL_KEY=$(docker run --rm consul consul keygen)
-  sed -i "s/your_generated_encryption_key_here/$CONSUL_KEY/" .env
-  echo "Consul加密密钥已更新到.env文件"
-fi
+echo "Waiting for services to start..."
+sleep 30
 
-# 设置文件权限
-chmod -R 755 config
+echo "Setup complete!"
+echo "Services available at:"
+echo "  - Consul UI: http://localhost:8500"
+echo "  - Prometheus: http://localhost:9090"
+echo "  - Grafana: http://localhost:3000 (admin/admin)"
+echo "  - Alertmanager: http://localhost:9093"
+echo "  - Pyroscope: http://localhost:4040"
+echo "  - Node Exporter: http://localhost:9100"
+echo "  - Consul Exporter: http://localhost:9107"
 
-echo "设置完成，现在可以运行 'docker-compose up -d' 启动服务"
+echo "To stop all services: docker-compose down"
+echo "To view logs: docker-compose logs -f [service_name]"

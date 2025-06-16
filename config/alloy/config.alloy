@@ -1,98 +1,86 @@
 logging {
-  level  = "info"
-  format = "logfmt"
+  level = "info"
 }
 
-// 本地文件匹配组件 - 用于收集日志文件
-local.file_match "logs" {
-  path_targets = [
-    {path = "/var/log/app/*.log", pipeline = "logs"},
-  ]
-}
-
-// 日志收集组件 - 从文件中抓取日志
-loki.source.file "logs" {
-  targets    = local.file_match.logs.targets
-  forward_to = [loki.process.logs.receiver]
-}
-
-// 日志处理组件 - 添加标签
-loki.process "logs" {
-  stage.static_labels {
-    values = {
-      job = "file_logs",
-      env = "production",
-    }
-  }
-  forward_to = [http.client.sls.sender]
-}
-
-// 阿里云SLS HTTP客户端组件 - 将日志发送到阿里云SLS
-http.client "sls" {
+prometheus.remote_write "prom" {
   endpoint {
-    url = "https://${env.SLS_PROJECT}.${env.SLS_ENDPOINT}/logstores/${env.SLS_LOGSTORE}/track"
-  }
-  
-  // 阿里云SLS认证
-  auth {
-    type = "basic"
-    username = "${env.SLS_ACCESS_KEY_ID}"
-    password = "${env.SLS_ACCESS_KEY_SECRET}"
-  }
-  
-  // 请求头设置
-  headers = {
-    "Content-Type" = "application/json",
-    "x-log-apiversion" = "0.6.0",
-    "x-log-bodyrawsize" = "0",
-  }
-  
-  // 超时和重试设置
-  timeout = "10s"
-  retry_on_failure {
-    enabled = true
-    initial_backoff = "1s"
-    max_backoff = "10s"
-    max_retries = 10
+    url = "http://192.168.1.35:9090/api/v1/write"
   }
 }
 
-// Prometheus远程写入组件 - 将指标发送到Prometheus
-prometheus.remote_write "default" {
+prometheus.scrape "example" {
+  targets = discovery.relabel.relabel_wukong_server.output
+  job_name = "alloy_server"
+
+  scrape_interval = "10s"
+
+  forward_to = [prometheus.remote_write.prom.receiver]
+}
+
+pyroscope.write "write_job_name" {
   endpoint {
-    url = "http://prometheus:9090/api/v1/write"
+    url = "http://192.168.1.35:4040"
   }
 }
 
-// OTLP接收器 - 接收OpenTelemetry数据
-otel.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317"
+discovery.consul "wukong_server" {
+  server = "192.168.1.35:8500"
+  tags = ["govern_server"]
+  allow_stale = false
+}
+
+discovery.relabel "relabel_wukong_server" {
+  targets = discovery.consul.wukong_server.targets
+
+  rule {
+    source_labels = ["__meta_consul_service"]
+    regex         = "(.*)"
+    target_label  = "service_name"
+    action        = "replace"
   }
-  http {
-    endpoint = "0.0.0.0:4318"
-  }
-  output {
-    metrics = [prometheus.remote_write.default.receiver]
-    logs    = [http.client.sls.sender]
-    traces  = [otel.exporter.otlp.traces.sender]
+
+  rule {
+    action = "labelmap"
+    regex  = "__meta_consul_service_metadata_(.*)"
+    replacement = "$1"
   }
 }
 
-// OTLP导出器 - 用于导出跟踪数据
-otel.exporter.otlp "traces" {
-  client {
-    endpoint = "tempo:4317"
-    tls {
-      insecure = true
+pyroscope.scrape "scrape_job_name" {
+  targets = discovery.relabel.relabel_wukong_server.output
+  forward_to = [pyroscope.write.write_job_name.receiver]
+
+  profiling_config {
+    profile.process_cpu {
+      enabled = true
     }
-  }
-}
 
-// 服务器配置 - 用于UI和API
-server {
-  log_level = "info"
-  http {
-    listen_address = "0.0.0.0:12345"
+    profile.godeltaprof_memory {
+      enabled = false
+    }
+
+    profile.memory {
+      enabled = false
+    }
+
+    profile.godeltaprof_mutex {
+      enabled = false
+    }
+
+    profile.mutex {
+      enabled = false
+    }
+
+    profile.godeltaprof_block {
+      enabled = false
+    }
+
+    profile.block {
+      enabled = true
+    }
+
+    profile.goroutine {
+      enabled = true
+    }
   }
 }
