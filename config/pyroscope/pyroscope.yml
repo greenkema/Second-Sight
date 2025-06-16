@@ -1,0 +1,51 @@
+---
+# Pyroscope服务器配置 - 连续性能分析工具，用于监控和可视化应用程序性能数据
+
+# 日志级别: debug, info, warn, error
+# debug: 最详细的日志，包含所有调试信息
+# info: 一般信息性日志，默认级别
+# warn: 只记录警告和错误
+# error: 只记录错误信息
+log-level: "info"                # 设置日志级别为info，提供足够的信息但不会过于冗长
+
+# 存储配置 - 定义性能分析数据的存储位置和方式
+storage:
+  path: "/var/lib/pyroscope"    # 数据存储路径，所有性能分析数据将保存在此目录
+
+# API服务器配置 - 控制Pyroscope的HTTP API服务
+api-server:
+  # 监听地址 - 格式为[IP]:[PORT]，空IP表示监听所有网络接口
+  listen-addr: ":4040"         # 监听所有网络接口的4040端口
+
+# 抓取配置 - 定义如何收集性能分析数据
+scrape-configs:
+  # 自身监控 - 监控Pyroscope服务器自身的性能
+  - job-name: pyroscope         # 作业名称，用于标识此抓取配置
+    enabled-profiles:           # 启用的性能分析类型
+      [cpu, mem, goroutines, mutex, block]  # CPU使用率、内存使用、goroutine数量、互斥锁争用、阻塞操作
+    spy-name: gospy            # 使用的分析器名称，gospy用于Go应用
+    application-name: pyroscope.server.{profile_name}  # 应用名称模板，{profile_name}会被替换为实际的分析类型
+
+  # 从Consul发现服务 - 自动发现和监控注册在Consul中的服务
+  - job-name: consul-services   # 作业名称
+    enabled-profiles:           # 启用的性能分析类型
+      [cpu, mem, goroutines, mutex, block]  # 与上面相同的分析类型
+    spy-name: gospy            # 使用Go语言的分析器
+    consul:                    # Consul服务发现配置
+      server: "consul-server1:8500"  # Consul服务器地址
+      services: []             # 要监控的服务列表，空数组表示所有服务
+      tags: ["pyroscope"]      # 只监控带有"pyroscope"标签的服务
+    application-name-config:    # 应用名称配置
+      from-label: "service-name"  # 从服务标签中获取应用名称
+      add-suffix: ".{profile_name}"  # 添加分析类型作为后缀
+
+# 安全配置 - 控制访问和认证
+security:
+  # 禁用认证（生产环境应启用）
+  no-auth: true                # 禁用认证，允许无需登录访问Pyroscope UI和API
+                              # 注意：在生产环境中应设置为false并配置适当的认证
+
+# 数据保留策略 - 控制数据保留时间
+retention:
+  # 保留数据的天数 - 格式为数字加单位(d=天, w=周, y=年)
+  retention-period: 30d        # 保留30天的性能分析数据，超过此期限的数据将被自动删除

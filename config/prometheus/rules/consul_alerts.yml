@@ -1,0 +1,95 @@
+# Prometheus告警规则配置 - 定义监控系统的告警条件和通知方式
+groups:                        # 告警规则组列表
+- name: consul_alerts          # 规则组名称，用于在Prometheus UI中标识
+  rules:                       # 该组中的告警规则列表
+  # Consul服务器告警 - 监控Consul集群健康状态的规则
+  - alert: ConsulServerDown    # 告警名称，用于标识此告警
+    expr: up{job="consul-servers"} == 0  # 告警触发条件表达式
+                               # 当consul-servers作业的up指标为0（表示服务器宕机）时触发
+    for: 1m                    # 持续时间，条件必须连续满足1分钟才会触发告警
+    labels:                    # 告警标签，用于路由和分类
+      severity: critical       # 严重级别：critical表示紧急，需要立即处理
+      service: consul          # 服务名称：指示是Consul服务的告警
+    annotations:               # 告警注释，提供人类可读的详细信息
+      summary: "Consul服务器宕机 ({{ $labels.instance }})"  # 告警摘要
+      description: "Consul服务器 {{ $labels.instance }} 已经宕机超过1分钟\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"  # 详细描述
+
+  - alert: ConsulClusterLeaderLost  # 告警名称：Consul集群失去Leader
+    expr: consul_raft_leader{job="consul-exporter"} == 0  # 当consul_raft_leader指标为0时触发
+                               # 表示集群中没有Leader节点
+    for: 30s                   # 持续30秒触发告警
+    labels:
+      severity: critical       # 严重级别：critical，因为没有Leader会导致集群功能不可用
+      service: consul
+    annotations:
+      summary: "Consul集群失去Leader"  # 告警摘要
+      description: "Consul集群当前没有Leader，这可能导致服务发现和配置管理功能不可用\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"  # 详细描述
+
+  - alert: ConsulClusterNodesDown  # 告警名称：多个Consul节点宕机
+    expr: count(up{job="consul-servers"} == 0) >= 1  # 计算宕机的Consul服务器数量
+                               # 当有1个或更多节点宕机时触发
+    for: 1m                    # 持续1分钟触发告警
+    labels:
+      severity: warning        # 严重级别：warning，因为集群仍然可用但冗余性降低
+      service: consul
+    annotations:
+      summary: "多个Consul节点宕机"  # 告警摘要
+      description: "{{ $value }} 个Consul节点已经宕机，集群仍然可用但冗余性降低\n  LABELS = {{ $labels }}"  # 详细描述
+
+  # 服务健康检查告警 - 监控通过Consul注册的服务健康状态
+  - alert: ConsulServiceHealthCheckFailing  # 告警名称：服务健康检查失败
+    expr: consul_catalog_service_node_healthy{job="consul-exporter"} == 0  # 当服务健康检查指标为0时触发
+                               # 表示服务健康检查失败
+    for: 2m                    # 持续2分钟触发告警
+    labels:
+      severity: warning        # 严重级别：warning，因为单个服务故障可能不会立即影响整体系统
+      service: consul
+    annotations:
+      summary: "服务健康检查失败 ({{ $labels.service_name }})"  # 告警摘要，包含服务名称
+      description: "服务 {{ $labels.service_name }} 在节点 {{ $labels.node }} 上的健康检查失败\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"  # 详细描述
+
+  # 监控系统告警 - 监控基础设施和监控系统本身的健康状态
+  - alert: PrometheusTargetMissing  # 告警名称：Prometheus目标丢失
+    expr: up == 0              # 当任何监控目标的up指标为0时触发
+                               # 表示Prometheus无法抓取该目标的指标
+    for: 1m                    # 持续1分钟触发告警
+    labels:
+      severity: warning        # 严重级别：warning
+      service: monitoring      # 服务名称：monitoring，表示监控系统相关
+    annotations:
+      summary: "Prometheus目标丢失 ({{ $labels.instance }})"  # 告警摘要，包含实例名称
+      description: "目标 {{ $labels.instance }} 的监控数据采集失败\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"  # 详细描述
+
+  - alert: HostHighCpuLoad     # 告警名称：主机CPU负载高
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80  # CPU使用率超过80%
+                               # 计算方式：100减去空闲CPU百分比
+    for: 5m                    # 持续5分钟触发告警
+    labels:
+      severity: warning        # 严重级别：warning
+      service: system          # 服务名称：system，表示系统资源相关
+    annotations:
+      summary: "主机CPU负载高 ({{ $labels.instance }})"  # 告警摘要
+      description: "主机CPU使用率超过80%\n  VALUE = {{ $value }}%\n  LABELS = {{ $labels }}"  # 详细描述
+
+  - alert: HostOutOfMemory     # 告警名称：主机内存不足
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10  # 可用内存低于10%
+                               # 计算方式：可用内存除以总内存，再乘以100
+    for: 5m                    # 持续5分钟触发告警
+    labels:
+      severity: warning        # 严重级别：warning
+      service: system
+    annotations:
+      summary: "主机内存不足 ({{ $labels.instance }})"  # 告警摘要
+      description: "主机可用内存低于10%\n  VALUE = {{ $value }}%\n  LABELS = {{ $labels }}"  # 详细描述
+
+  - alert: HostOutOfDiskSpace  # 告警名称：主机磁盘空间不足
+    expr: (node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"} * 100) < 10  # 根分区可用空间低于10%
+                               # 计算方式：可用空间除以总空间，再乘以100
+                               # 排除rootfs文件系统类型，只关注实际的根分区
+    for: 5m                    # 持续5分钟触发告警
+    labels:
+      severity: warning        # 严重级别：warning
+      service: system
+    annotations:
+      summary: "主机磁盘空间不足 ({{ $labels.instance }})"  # 告警摘要
+      description: "主机根分区可用空间低于10%\n  VALUE = {{ $value }}%\n  LABELS = {{ $labels }}"  # 详细描述

@@ -1,0 +1,39 @@
+# Grafana数据源配置 - 定义Grafana可以连接的数据源
+apiVersion: 1                   # 配置文件API版本
+
+datasources:                   # 数据源列表
+  # Prometheus数据源配置 - 用于时间序列数据查询和可视化
+  - name: Prometheus           # 数据源名称，在Grafana UI中显示
+    type: prometheus           # 数据源类型，指定为Prometheus
+    access: proxy              # 访问模式：proxy表示Grafana服务器代理请求到Prometheus
+                               # 另一种模式是direct，表示浏览器直接访问Prometheus
+    url: http://prometheus:9090 # Prometheus服务器URL，使用Docker网络中的服务名
+    isDefault: true            # 设置为默认数据源，新建面板时自动选择
+    editable: false            # 禁止通过UI编辑此数据源，确保配置一致性
+    jsonData:                  # 数据源特定的JSON配置
+      timeInterval: 15s        # 抓取间隔，用于步长对齐
+      queryTimeout: 120s       # 查询超时时间
+      httpMethod: POST         # HTTP请求方法，POST适合复杂查询
+      manageAlerts: true       # 允许Grafana管理Prometheus告警
+      prometheusType: Prometheus # Prometheus类型（可以是Prometheus、Thanos等）
+      prometheusVersion: 2.40.0  # Prometheus版本，用于功能兼容性
+      exemplarTraceIdDestinations: # 示例跟踪ID目标配置，用于分布式跟踪集成
+        - name: traceID        # 跟踪ID字段名称
+          datasourceUid: tempo # 目标跟踪数据源UID
+
+  # Alertmanager数据源配置 - 用于管理和查看告警
+  - name: Alertmanager         # 数据源名称
+    type: alertmanager         # 数据源类型，指定为Alertmanager
+    access: proxy              # 访问模式：通过Grafana服务器代理
+    url: http://alertmanager:9093 # Alertmanager服务器URL
+    editable: false            # 禁止通过UI编辑
+    jsonData:                  # 数据源特定的JSON配置
+      implementation: prometheus # 实现类型，指定为prometheus
+      handleGrafanaManagedAlerts: true # 处理Grafana管理的告警
+
+  # Pyroscope数据源配置 - 用于连续性能分析
+  - name: Pyroscope            # 数据源名称
+    type: grafana-pyroscope-datasource # 数据源类型，使用Pyroscope插件
+    access: proxy              # 访问模式：通过Grafana服务器代理
+    url: http://pyroscope:4040 # Pyroscope服务器URL
+    editable: false            # 禁止通过UI编辑

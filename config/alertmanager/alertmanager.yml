@@ -1,0 +1,60 @@
+# Alertmanager 配置文件
+# 本配置文件定义了告警处理、路由和通知的规则
+
+# 全局配置 - 适用于所有告警的默认设置
+global:
+  resolve_timeout: 5m                      # 告警解决超时时间，如果5分钟内没有收到新的告警，则认为已解决
+  smtp_smarthost: 'smtp.example.com:587'   # SMTP服务器地址和端口，用于发送邮件通知
+  smtp_from: 'alertmanager@example.com'    # 发件人邮箱地址
+  smtp_auth_username: 'alertmanager'       # SMTP认证用户名
+  smtp_auth_password: 'password'           # SMTP认证密码（生产环境应使用环境变量或密钥管理系统）
+  smtp_require_tls: true                   # 要求使用TLS加密SMTP连接
+
+# 路由配置 - 定义告警如何路由到接收器
+# Alloy支持强大的路由功能，可以基于标签将告警发送到不同的接收器
+route:
+  group_by: ['alertname', 'cluster', 'service']  # 按这些标签对告警进行分组
+  group_wait: 30s                          # 初始等待时间，等待更多相同组的告警一起发送
+  group_interval: 5m                       # 如果组内有新告警，至少等待5分钟再发送
+  repeat_interval: 4h                      # 重复发送同一告警的间隔时间
+  receiver: 'email-notifications'          # 默认接收器
+  routes:                                  # 子路由配置
+  - match:                                 # 匹配条件
+      severity: critical                   # 匹配严重级别为critical的告警
+    receiver: 'pager-duty-critical'        # 发送到PagerDuty接收器
+    continue: true                         # 继续评估后续路由
+  - match:                                 # 匹配条件
+      severity: warning                    # 匹配严重级别为warning的告警
+    receiver: 'email-notifications'        # 发送到邮件通知接收器
+    continue: true                         # 继续评估后续路由
+
+# 接收器配置 - 定义不同的通知目标
+# Alloy支持多种通知集成，包括电子邮件、Slack、PagerDuty、WebHook等
+receivers:
+- name: 'email-notifications'              # 邮件通知接收器
+  email_configs:                           # 邮件配置
+  - to: 'team@example.com'                 # 收件人邮箱
+    send_resolved: true                    # 当告警解决时也发送通知
+
+- name: 'pager-duty-critical'              # PagerDuty接收器（用于紧急告警）
+  pagerduty_configs:                       # PagerDuty配置
+  - service_key: '<your-pagerduty-service-key>'  # PagerDuty集成密钥
+    send_resolved: true                    # 当告警解决时也发送通知
+
+# 抑制规则 - 定义哪些告警可以抑制其他告警
+# Alloy的抑制功能可以减少告警风暴，避免接收过多相关告警
+inhibit_rules:
+  - source_match:                          # 源告警匹配条件
+      severity: 'critical'                 # 严重级别为critical的告警
+    target_match:                          # 目标告警匹配条件
+      severity: 'warning'                  # 严重级别为warning的告警
+    equal: ['alertname', 'cluster', 'service']  # 这些标签必须相等才会抑制
+                                           # 例如：如果同一服务有critical和warning告警，只发送critical
+
+# 模板文件 - 自定义通知模板
+# Alloy支持自定义通知模板，可以定制告警通知的格式和内容
+templates:
+  - '/etc/alertmanager/template/*.tmpl'    # 模板文件路径，用于自定义通知格式
+
+# 注意：Alloy作为OpenTelemetry Collector，还支持更高级的可观测性管道配置
+# 如需配置更复杂的管道，请参考Grafana Alloy文档：https://github.com/grafana/alloy

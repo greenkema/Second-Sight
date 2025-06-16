@@ -1,0 +1,40 @@
+{
+  "datacenter": "dc1",                 // 数据中心名称，集群中所有节点应保持一致
+  "data_dir": "/consul/data",           // 数据存储目录，用于存储Consul的状态信息
+  "log_level": "INFO",                  // 日志级别：DEBUG, INFO, WARN, ERR
+  "node_name": "consul-server3",         // 节点名称，在集群中必须唯一
+  "server": true,                       // 设置为server模式（而非client模式）
+  "ui_config": {
+    "enabled": false                    // 禁用Web UI界面，只在server1上启用即可
+  },
+  "bootstrap_expect": 3,                // 预期的服务器节点数，达到此数量后才选举leader
+  "retry_join": ["consul-server1", "consul-server2"], // 尝试加入的其他节点列表
+  "client_addr": "0.0.0.0",             // 客户端接口监听地址，0.0.0.0表示监听所有接口
+  "bind_addr": "{{ GetInterfaceIP \"eth0\" }}", // 集群通信绑定的地址，使用eth0网卡IP
+  "telemetry": {
+    "disable_hostname": true,           // 禁用主机名在遥测数据中
+    "prometheus_retention_time": "30s"   // Prometheus指标保留时间
+  },
+  "performance": {
+    "raft_multiplier": 1                // Raft性能倍增器，1为最高性能设置
+  },
+  "connect": {
+    "enabled": true                     // 启用Connect服务网格功能
+  },
+  "acl": {
+    "enabled": false,                   // 禁用访问控制列表（生产环境建议启用）
+    "default_policy": "allow",          // 默认策略为允许（生产环境建议设为deny）
+    "enable_token_persistence": true    // 启用令牌持久化
+  },
+  "service": {
+    "name": "consul",                   // 服务名称
+    "tags": ["server"],                 // 服务标签，用于服务发现和筛选
+    "check": {
+      "id": "consul-server-health",      // 健康检查ID
+      "name": "Consul Server Health",    // 健康检查名称
+      "tcp": "localhost:8300",          // 使用TCP检查8300端口（服务器RPC端口）
+      "interval": "30s",                // 检查间隔
+      "timeout": "5s"                   // 检查超时时间
+    }
+  }
+}
