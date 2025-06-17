@@ -5,22 +5,22 @@
 ## 系统组件
 
 - **Consul**: 服务发现和配置管理
-  - 访问地址: http://localhost:8500
+  - 访问地址: http://127.0.0.1:8500
 - **Prometheus**: 时间序列数据库和监控系统
-  - 访问地址: http://localhost:9090
+  - 访问地址: http://127.0.0.1:9090
 - **Grafana**: 数据可视化和仪表板
-  - 访问地址: http://localhost:3000
+  - 访问地址: http://127.0.0.1:3000
 - **Alertmanager**: 告警处理和通知
-  - 访问地址: http://localhost:9093
+  - 访问地址: http://127.0.0.1:9093
 - **Pyroscope**: 连续性能分析
-  - 访问地址: http://localhost:4040
+  - 访问地址: http://127.0.0.1:4040
 - **Node Exporter**: 主机指标收集
-  - 访问地址: http://localhost:9100/metrics
+  - 访问地址: http://127.0.0.1:9100/metrics
 - **Consul Exporter**: Consul指标收集
 - **Grafana Alloy**: 遥测数据收集和处理
-  - 访问地址: http://localhost:12345
-  - OTLP gRPC端点: localhost:4317
-  - OTLP HTTP端点: http://localhost:4318
+  - 访问地址: http://127.0.0.1:12345
+  - OTLP gRPC端点: 127.0.0.1:4317
+  - OTLP HTTP端点: http://127.0.0.1:4318
 - **阿里云SLS**: 日志服务，用于日志聚合和查询
   - 通过Grafana配置数据源访问
 
@@ -36,21 +36,21 @@
 1. 克隆仓库
 
 ```bash
-git clone https://github.com/yourusername/distributed-monitoring.git
-cd distributed-monitoring
+git clone https://github.com/greenkema/Second-Sight.git
+cd Second-Sight/
 ```
 
 2. 生成Consul加密密钥
 
 ```bash
-docker run --rm consul consul keygen
+docker run --rm consul:1.15.4 consul keygen
 ```
 
 3. 创建.env文件并添加必要的环境变量
 
 ```bash
 CONSUL_ENCRYPT_KEY=<生成的密钥>
-GRAFANA_ADMIN_PASSWORD=admin  # 可以修改为更安全的密码
+GRAFANA_ADMIN_PASSWORD=your_grafana_dashboard_password_here
 SLS_PROJECT=<阿里云SLS项目名称>
 SLS_ENDPOINT=<阿里云SLS端点，例如：cn-hangzhou.log.aliyuncs.com>
 SLS_LOGSTORE=<阿里云SLS日志库名称>
@@ -67,12 +67,12 @@ mkdir -p config/{consul/{server1,server2,server3},prometheus,grafana/{provisioni
 5. 启动系统
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 6. 访问Grafana
 
-打开浏览器访问 http://localhost:3000，使用默认用户名 `admin` 和在.env文件中设置的密码登录。
+打开浏览器访问 http://127.0.0.1:3000，使用默认用户名 `admin` 和在.env文件中设置的密码登录。
 
 ## 目录结构
 
@@ -198,7 +198,7 @@ otel.receiver.otlp "default" {
 检查Docker日志以获取详细错误信息：
 
 ```bash
-docker-compose logs <服务名>
+docker compose logs <服务名>
 ```
 
 ### 无法收集数据
@@ -219,7 +219,7 @@ docker-compose logs <服务名>
 2. 尝试重启服务
 
 ```bash
-docker-compose restart <服务名>
+docker compose restart <服务名>
 ```
 
 ## 维护操作
@@ -227,7 +227,7 @@ docker-compose restart <服务名>
 ### 查看日志
 
 ```bash
-docker-compose logs -f <服务名>
+docker compose logs -f <服务名>
 ```
 
 ### 重新加载配置
@@ -235,7 +235,7 @@ docker-compose logs -f <服务名>
 对于支持热重载的服务（如Prometheus）：
 
 ```bash
-curl -X POST http://localhost:9090/-/reload
+curl -X POST http://127.0.0.1:9090/-/reload
 ```
 
 ### 重启服务
@@ -247,13 +247,13 @@ docker-compose restart <服务名>
 ### 停止服务
 
 ```bash
-docker-compose stop <服务名>
+docker compose stop <服务名>
 ```
 
 ### 完全移除
 
 ```bash
-docker-compose down -v
+docker compose down -v
 ```
 
 ## 扩展指南

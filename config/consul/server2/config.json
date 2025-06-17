@@ -32,7 +32,7 @@
     "check": {
       "id": "consul-server-health",
       "name": "Consul Server Health",
-      "tcp": "localhost:8300",
+      "http": "http://127.0.0.1:8500/v1/status/leader",
       "interval": "30s",
       "timeout": "5s"
     }

@@ -38,7 +38,7 @@ CONSUL_ENCRYPT_KEY=生成的密钥值
 ### 3. 启动集群
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 4. 验证集群状态
@@ -99,7 +99,7 @@ docker exec consul-server1 consul members
 ### 查看日志
 
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 扩展集群
@@ -109,14 +109,14 @@ docker-compose logs -f
 ### 重启集群
 
 ```bash
-docker-compose restart
+docker compose restart
 ```
 
 ### 完全重建集群
 
 ```bash
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ## 故障排除
@@ -189,7 +189,7 @@ docker-compose up -d
 2. 重启Prometheus服务
 
 ```bash
-docker-compose restart prometheus
+docker compose restart prometheus
 ```
 
 ### 添加自定义告警规则

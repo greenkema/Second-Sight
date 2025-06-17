@@ -3,7 +3,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-if (-not (Get-Command docker-compose -ErrorAction SilentlyContinue)) {
+if (-not (Get-Command docker -ErrorAction SilentlyContinue) -or -not (docker compose version 2>$null)) {
     Write-Error "Docker Compose is not installed or not in PATH"
     exit 1
 }
@@ -22,7 +22,7 @@ foreach ($dir in $directories) {
 }
 
 Write-Host "Starting services..."
-docker-compose up -d
+docker compose up -d
 
 Write-Host "Waiting for services to start..."
 Start-Sleep -Seconds 30
@@ -36,5 +36,5 @@ Write-Host "- Pyroscope: http://localhost:4040"
 Write-Host "- Node Exporter: http://localhost:9100"
 Write-Host "- Consul Exporter: http://localhost:9107"
 Write-Host ""
-Write-Host "To stop all services: docker-compose down"
-Write-Host "To view logs: docker-compose logs -f [service-name]"
+Write-Host "To stop all services: docker compose down"
+Write-Host "To view logs: docker compose logs -f [service-name]"
