@@ -4,7 +4,7 @@ logging {
 
 prometheus.remote_write "prom" {
   endpoint {
-    url = "http://192.168.1.35:9090/api/v1/write"
+    url = "http://prometheus:9090/api/v1/write"
   }
 }
 
@@ -19,12 +19,12 @@ prometheus.scrape "example" {
 
 pyroscope.write "write_job_name" {
   endpoint {
-    url = "http://192.168.1.35:4040"
+    url = "http://pyroscope:4040"
   }
 }
 
 discovery.consul "wukong_server" {
-  server = "192.168.1.35:8500"
+  server = "consul-server1:8500"
   tags = ["govern_server"]
   allow_stale = false
 }
@@ -60,7 +60,7 @@ pyroscope.scrape "scrape_job_name" {
     }
 
     profile.memory {
-      enabled = false
+      enabled = true
     }
 
     profile.godeltaprof_mutex {
@@ -68,7 +68,7 @@ pyroscope.scrape "scrape_job_name" {
     }
 
     profile.mutex {
-      enabled = false
+      enabled = true
     }
 
     profile.godeltaprof_block {

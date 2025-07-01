@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   consul-server1:
-    image: consul:latest
+    image: consul:1.15.4
     container_name: consul-server1
     restart: always
     volumes:
@@ -34,7 +34,7 @@ services:
       retries: 3
 
   consul-server2:
-    image: consul:latest
+    image: consul:1.15.4
     container_name: consul-server2
     restart: always
     volumes:
@@ -61,7 +61,7 @@ services:
       retries: 3
 
   consul-server3:
-    image: consul:latest
+    image: consul:1.15.4
     container_name: consul-server3
     restart: always
     volumes:
@@ -109,7 +109,7 @@ services:
     depends_on:
       - consul-server1
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9090/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -125,7 +125,6 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=http://localhost:3000
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel,grafana-worldmap-panel
     networks:
       - monitoring-net
@@ -134,7 +133,7 @@ services:
     depends_on:
       - prometheus
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -156,21 +155,22 @@ services:
     depends_on:
       - prometheus
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9093/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   pyroscope:
-    image: pyroscope/pyroscope:latest
+    image: grafana/pyroscope:latest
     container_name: pyroscope
     restart: always
     volumes:
       - pyroscope-data:/var/lib/pyroscope
-      - ./config/pyroscope/pyroscope.yml:/etc/pyroscope/pyroscope.yml
+      - ./config/pyroscope/pyroscope.yaml:/etc/pyroscope/pyroscope.yaml
     command:
-      - 'server'
-      - '-config=/etc/pyroscope/pyroscope.yml'
+      - -server.http-listen-port=4040
+      - -pyroscopedb.data-path=/var/lib/pyroscope
+      - -config.file=/etc/pyroscope/config.yaml
     networks:
       - monitoring-net
     ports:
@@ -199,7 +199,7 @@ services:
     ports:
       - "9100:9100"
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9100/metrics"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9100/metrics"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -215,7 +215,7 @@ services:
     depends_on:
       - consul-server1
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9107/metrics"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9107/metrics"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -247,7 +247,7 @@ services:
     depends_on:
       - prometheus
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:12345/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:12345/"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -7,7 +7,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     echo "Docker Compose is not installed. Please install Docker Compose first."
     exit 1
 fi
@@ -16,14 +16,6 @@ if [ ! -f ".env" ]; then
     echo "Creating .env file from .env.sample..."
     cp .env.sample .env
     echo "Please edit .env file with your specific configuration."
-fi
-
-# 生成Consul加密密钥（如果需要）
-if grep -q "your_generated_encryption_key_here" .env; then
-  echo "生成Consul加密密钥..."
-  CONSUL_KEY=$(docker run --rm consul:1.15.4 consul keygen)
-  sed -i "s/your_generated_encryption_key_here/$CONSUL_KEY/" .env
-  echo "Consul加密密钥已更新到.env文件"
 fi
 
 echo "Creating necessary directories..."
@@ -57,4 +49,4 @@ echo "  - Node Exporter: http://localhost:9100"
 echo "  - Consul Exporter: http://localhost:9107"
 
 echo "To stop all services: docker compose down"
-echo "To view logs: docker compose logs -f [service_name]"
+echo "To view logs: docker-compose logs -f [service_name]"

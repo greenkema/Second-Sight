@@ -1,41 +1,31 @@
-log-level: info
-api:
-  bind-addr: 0.0.0.0:4040
+---
+log-level: "debug"
+
 storage:
-  path: /data
-  retention: 168h
-analytics:
-  reporting-disabled: true
-server:
-  http-listen-port: 4040
-  grpc-listen-port: 4041
-store-gateway:
-  sharding-enabled: false
-querier:
-  max-concurrent-queries: 20
-query-frontend:
-  max-retries: 5
-compactor:
-  retention-enabled: true
-  retention-duration: 168h
-distributor:
-  pool:
-    max-workers: 100
-ingester:
-  lifecycler:
-    heartbeat-period: 5s
-    join-after: 10s
-    observe-period: 5s
-    num-tokens: 512
-  max-transfer-retries: 10
-limits:
-  max-query-length: 721h
-  max-query-lookback: 0s
-  max-query-parallelism: 14
-  max-samples-per-query: 1000000
-  ingestion-rate-mb: 4
-  ingestion-burst-size-mb: 8
-  max-local-series-per-user: 100000
-  max-global-series-per-user: 300000
-usage-stats:
-  enabled: false
+  path: "/var/lib/pyroscope"
+  retention: 30d
+
+api-server:
+  listen-addr: ":4040"
+
+scrape-configs:
+  - job-name: pyroscope
+    enabled-profiles:
+      [cpu, mem, goroutines, mutex, block]
+    spy-name: gospy
+    application-name: pyroscope.server.{profile_name}
+
+  - job-name: consul-services
+    enabled-profiles:
+      [cpu, mem, goroutines, mutex, block]
+    spy-name: gospy
+    consul:
+      server: "consul-server1:8500"
+      services: []
+      tags: ["pyroscope"]
+    application-name-config:
+      from-label: "service-name"
+      add-suffix: ".{profile_name}"
+
+security:
+  no-auth: true
