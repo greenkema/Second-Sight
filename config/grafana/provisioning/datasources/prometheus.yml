@@ -14,9 +14,7 @@ datasources:
       manageAlerts: true
       prometheusType: Prometheus
       prometheusVersion: 2.40.0
-      exemplarTraceIdDestinations:
-        - name: traceID
-          datasourceUid: tempo
+
 
   - name: Alertmanager
     type: alertmanager

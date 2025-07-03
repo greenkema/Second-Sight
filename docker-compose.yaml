@@ -170,7 +170,7 @@ services:
     command:
       - -server.http-listen-port=4040
       - -pyroscopedb.data-path=/var/lib/pyroscope
-      - -config.file=/etc/pyroscope/config.yaml
+      - --config.file=/etc/pyroscope/config.yaml
     networks:
       - monitoring-net
     ports:
